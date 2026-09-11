@@ -1,0 +1,56 @@
+# SQL Injection UNION Attack — Determining the Number of Columns
+
+**Source:** PortSwigger Web Security Academy
+**Category:** SQL Injection
+
+## Overview
+This lab contains a product category filter vulnerable to SQL injection.
+The goal was to perform a UNION-based SQL injection attack, starting with
+the first and most essential step: determining how many columns the
+original SQL query returns. This is a prerequisite for any further
+UNION-based data extraction.
+
+## Vulnerability
+The category filter parameter is inserted directly into a SQL query
+without sanitization, similar to other SQLi labs. However, exploiting it
+via a UNION attack requires the injected `UNION SELECT` statement to
+return the exact same number of columns as the original query — otherwise
+the database throws an error and the attack fails.
+
+## Steps Taken
+1. Confirmed the parameter was injectable by testing a single quote (`'`)
+   and observing a database error in the response.
+2. Used the `ORDER BY` technique to determine the column count — incrementing
+   the column number in each request until the query returned an error,
+   which indicates the column count was exceeded:
+   `' ORDER BY 1--`
+   `' ORDER BY 2--`
+   `' ORDER BY 3--` (this one caused an error, confirming 2 columns)
+3. Verified the result using the `UNION SELECT` technique as a cross-check —
+   submitting a `UNION SELECT NULL,NULL--` payload matching the confirmed
+   column count and observing a successful response with no error.
+
+## Payload Used
+```
+[ UNION SELECT NULL,NULL--]
+```
+## Impact
+While determining column count isn't itself a data breach, it's the
+essential first step that enables full UNION-based data extraction —
+including pulling data from other tables in the database (usernames,
+passwords, or any sensitive information) once the correct column count
+and compatible data types are identified.
+
+## Mitigation
+- Use parameterized queries / prepared statements so user input can never
+  alter the structure of a SQL query, regardless of column count.
+- Apply least-privilege database accounts so even if injection succeeds,
+  the exposed data/actions are limited.
+- Use a Web Application Firewall (WAF) as a defense-in-depth measure to
+  catch common injection patterns like `ORDER BY` and `UNION SELECT` probing.
+
+## Key Takeaway
+This lab reinforced that UNION-based attacks are a multi-step process —
+you can't jump straight to extracting data without first mapping the
+query's structure. The `ORDER BY` technique is a reliable, low-noise way
+to enumerate columns before attempting a full UNION SELECT payload.
