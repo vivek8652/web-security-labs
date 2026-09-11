@@ -1,0 +1,55 @@
+# SQL Injection Vulnerability in WHERE Clause — Retrieving Hidden Data
+
+**Source:** PortSwigger Web Security Academy
+**Category:** SQL Injection
+**Difficulty:** Apprentice
+
+## Overview
+This lab contains a product category filter where user input is inserted
+directly into a SQL `WHERE` clause without proper sanitization. The goal
+was to exploit this to bypass the filter and retrieve hidden/unreleased
+product data that isn't normally shown to users.
+
+## Vulnerability
+The application builds a SQL query using the category parameter from the
+URL without validating or escaping it. Because the input is concatenated
+directly into the query, it's possible to modify the logic of the WHERE
+clause itself instead of just supplying a category value.
+
+## Steps Taken
+1. Identified the vulnerable parameter in the URL (`category`) while
+   browsing the product listing page.
+2. Tested the parameter by injecting a single quote (`'`) to check if it
+   broke the SQL query — confirmed by an application error / different
+   response.
+3. Crafted a payload to always evaluate the WHERE condition as true,
+   forcing the query to return all products regardless of category:
+   `' OR 1=1--`
+4. Submitted the modified request via [Burp Suite / browser address bar]
+   and observed that hidden/unreleased products were now visible in the
+   response, confirming successful exploitation.
+
+## Payload Used
+```
+[apna exact payload yaha daalo, e.g. ' OR 1=1--]
+```
+## Impact
+This vulnerability allows an attacker to manipulate backend SQL logic
+through unsanitized user input, potentially exposing data that should be
+restricted — in more severe real-world cases, this class of vulnerability
+can lead to full database compromise (reading, modifying, or deleting
+data outside the application's intended access controls).
+
+## Mitigation
+- Use parameterized queries / prepared statements instead of directly
+  concatenating user input into SQL queries.
+- Apply strict input validation and allow-listing for expected values
+  (e.g., only permit known category names).
+- Follow the principle of least privilege for the database account used
+  by the application.
+
+## Key Takeaway
+This lab reinforced how unsanitized input in a WHERE clause can be
+leveraged to alter query logic entirely, not just inject extra data —
+and why parameterized queries are non-negotiable for any
+database-backed application.
